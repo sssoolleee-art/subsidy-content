@@ -47,7 +47,7 @@ async function tagBatch(items) {
     headers: { 'x-api-key': API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 4000,
+      max_tokens: 8000,
       system: `정부 지원금 정보를 분류·요약합니다. 각 항목에 대해 JSON으로만 답합니다.
 - situations: ${SITUATIONS.join('|')} 중 해당하는 것 전부 (최소 1개, 애매하면 "기타")
 - ages: ${AGES.join('|')} 중 해당 전부 (대상 연령 불명확하면 "전연령")
@@ -63,14 +63,16 @@ async function tagBatch(items) {
 }
 
 async function main() {
-  const services = raw.map(norm).filter((s) => s.id && s.name);
-  console.log(`전체 ${services.length}건`);
+  // 개인 대상 서비스만 (법인·시설·단체 전용 제외 — 태깅 비용·노이즈 절감)
+  const personal = raw.filter((r) => String(r['사용자구분'] ?? '').includes('개인'));
+  const services = personal.map(norm).filter((s) => s.id && s.name);
+  console.log(`전체 ${raw.length}건 중 개인 대상 ${services.length}건`);
 
   // 신규·변경분만 태깅
   const todo = services.filter((s) => !tagged[s.id] || tagged[s.id].updated !== s.updated);
   console.log(`태깅 대상 ${todo.length}건 (캐시 ${Object.keys(tagged).length}건)`);
-  for (let i = 0; i < todo.length; i += 20) {
-    const batch = todo.slice(i, i + 20);
+  for (let i = 0; i < todo.length; i += 40) {
+    const batch = todo.slice(i, i + 40);
     try {
       const results = await tagBatch(batch);
       for (const r of results) {
@@ -83,7 +85,7 @@ async function main() {
           updated: src.updated,
         };
       }
-      console.log(`태깅 ${Math.min(i + 20, todo.length)}/${todo.length}`);
+      console.log(`태깅 ${Math.min(i + 40, todo.length)}/${todo.length}`);
       writeFileSync(cachePath, JSON.stringify(tagged)); // 중간 저장 (재실행 안전)
     } catch (e) {
       console.error(`배치 ${i} 실패:`, e.message);
