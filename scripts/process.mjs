@@ -25,12 +25,18 @@ const norm = (r) => ({
   criteria: F(r, '선정기준', 'slctCritCn'),
   content: F(r, '지원내용', 'alwServCn'),
   type: F(r, '지원유형', 'srvPvsnNm'),
-  how: F(r, '신청방법', 'aplyMtdNm'),
+  how: F(r, '신청방법', 'aplyMtdNm').replace(/\|\|/g, ' · ').replace(/\s*,\s*/g, ' · '),
   deadline: F(r, '신청기한', 'aplyTermCn') || '상시',
   org: F(r, '소관기관명', '소관부처명', 'jurMnofNm'),
   url: F(r, '상세조회URL', 'svcDtlLink'),
   updated: F(r, '수정일시', '등록일시', 'lastModYmd'),
 });
+
+// 구·시·군 단위 추출 (예: "서울특별시 강서구" → "강서구") — 정밀 매칭·정렬용
+function detectDistrict(org) {
+  const m = org.match(/(?:특별시|광역시|특별자치시|특별자치도|도)\s+(\S+?(?:구|시|군))(?:\s|$)/);
+  return m ? m[1] : '';
+}
 
 function detectRegion(org) {
   for (const rg of REGIONS.slice(1)) {
@@ -104,6 +110,7 @@ async function main() {
       summary: t.summary || s.purpose.slice(0, 60),
       type: s.type, how: s.how, deadline: s.deadline, org: s.org, url: s.url,
       region: detectRegion(s.org),
+      district: detectDistrict(s.org),
       ages: t.ages.length ? t.ages : ['전연령'],
       updated: s.updated,
     };
