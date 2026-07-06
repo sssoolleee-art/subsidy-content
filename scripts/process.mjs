@@ -24,7 +24,7 @@ const norm = (r) => ({
   target: F(r, '지원대상', 'sprtTrgtCn'),
   criteria: F(r, '선정기준', 'slctCritCn'),
   content: F(r, '지원내용', 'alwServCn'),
-  type: F(r, '지원유형', 'srvPvsnNm'),
+  type: F(r, '지원유형', 'srvPvsnNm').replace(/\|\|/g, '·'),
   how: F(r, '신청방법', 'aplyMtdNm').replace(/\|\|/g, ' · ').replace(/\s*,\s*/g, ' · '),
   deadline: F(r, '신청기한', 'aplyTermCn') || '상시',
   org: F(r, '소관기관명', '소관부처명', 'jurMnofNm'),
